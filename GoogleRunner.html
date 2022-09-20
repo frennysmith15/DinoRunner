@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Ingenieria II</title>
+    <style>
+        canvas {
+            border: 1px solid gray;
+            margin: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Probando</h1>
+    <canvas id="canvasDeJuego" width="600" height="300"></canvas>
+
+    <script>
+        let canvas = document.getElementById("canvasDeJuego");
+        let contexto = canvas.getContext("2d");
+
+        let alturaCanvas = canvas.height;
+        let anchuraCanvas = canvas.width;
+        let alturaPiso = 20;
+        let yPiso = alturaCanvas - alturaPiso;
+        let velocidad = 1.5;
+        let saltos = 0;
+        let intervalo;
+        let puntaje = 0;
+
+        function dibujarPiso() {
+            contexto.beginPath();
+            contexto.lineWidth = 1;
+            contexto.moveTo(0, yPiso );
+            contexto.lineTo(anchuraCanvas, yPiso);
+            contexto.stroke();
+
+            contexto.fillStyle = "brown";
+            contexto.fillRect(0,yPiso, anchuraCanvas, alturaCanvas - yPiso);
+        }
+
+        // let x = anchuraCanvas * 0.30;
+        // let y = yPiso - 20;
+        // let anchura = 30;
+        // let altura = 20;
+        // contexto.fillStyle = "#000000";
+        // contexto.fillRect( x, y, anchura, altura);
+        // contexto.fillStyle = "#FFFFFF";
+        // contexto.fillRect( x + 1, y + 1, anchura - 2, altura);
+
+        // let rectangulo = {
+        //     x: anchuraCanvas * 0.30,
+        //     y: yPiso - 20,
+        //     anchura: 30,
+        //     altura: 20
+        // };
+        // contexto.fillStyle = "#000000";
+        // contexto.fillRect( rectangulo.x, rectangulo.y, rectangulo.anchura, rectangulo.altura);
+        // contexto.fillStyle = "#FFFFFF";
+        // contexto.fillRect( rectangulo.x + 1, rectangulo.y + 1, rectangulo.anchura - 2, rectangulo.altura);
+
+
+        //dibujar una montania
+        let posicionMontania = anchuraCanvas * 0.5;
+
+        let montanias = [];
+        function crearMontania( posicion, posicionY ) {
+            return {
+                posicion,
+                dibujar(){
+                    contexto.strokeStyle = "black";
+                    contexto.fillStyle = "brown";
+                    contexto.beginPath();
+                    contexto.moveTo(this.posicion, posicionY + 1);
+                    contexto.lineTo(this.posicion + 5, posicionY - 2);
+                    contexto.lineTo(this.posicion + 10, posicionY - 4);
+                    contexto.lineTo(this.posicion + 15, posicionY - 6);
+                    contexto.lineTo(this.posicion + 20, posicionY - 4);
+                    contexto.lineTo(this.posicion + 25, posicionY - 2);
+                    contexto.lineTo(this.posicion + 25, posicionY + 1);
+                    contexto.stroke();
+                    contexto.fill();
+                },
+                actualizar() {
+                    this.posicion -= velocidad;
+
+                    if(this.posicion < -(anchuraCanvas / 4)) {
+                        this.posicion = anchuraCanvas;
+                    }
+                }
+            };
+        }
+
+        //console.log(anchuraCanvas, "x", alturaCanvas);
+
+        let arregloPiedras = [];
+        function crearPiedra( anchura, posicionVertical, posicionHorizontal ) {
+            return {
+                anchura: anchura,
+                posicionVertical: posicionVertical,
+                posicionHorizontal: posicionHorizontal
+            };
+        }
+
+        function dibujarPiedras() {
+            if( arregloPiedras.length == 0) {
+                for( let i = 0; i < anchuraCanvas; i += 20 ) {
+                    let posicionVerticalPiedra = yPiso + (Math.random() * alturaPiso);
+                    let anchuraPiedra = Math.random() * 5;
+                    let posicionHorizontalPiedra = i;
+                    let piedraActual = crearPiedra(anchuraPiedra, posicionVerticalPiedra, posicionHorizontalPiedra)
+                    arregloPiedras.push( piedraActual );
+                }
+            }
+
+            contexto.strokeStyle = "black";
+            for( let i = 0; i < arregloPiedras.length; i++ ) {
+                let piedraActual = arregloPiedras[i];
+                contexto.beginPath();
+                contexto.moveTo(piedraActual.posicionHorizontal, piedraActual.posicionVertical );
+                contexto.lineTo(piedraActual.posicionHorizontal + piedraActual.anchura, piedraActual.posicionVertical );
+                contexto.stroke();
+
+                // contexto.font = "12px Arial";
+                // contexto.beginPath();
+                // //contexto.fillText(i, piedraActual.posicionHorizontal, piedraActual.posicionVertical - alturaPiso);
+                // contexto.moveTo(piedraActual.posicionHorizontal, piedraActual.posicionVertical );
+                // contexto.lineTo(piedraActual.posicionHorizontal, piedraActual.posicionVertical - alturaPiso );
+                // contexto.stroke();
+                // contexto.fill();
+
+                
+                
+                
+                piedraActual.posicionHorizontal -= velocidad;
+
+                if(piedraActual.posicionHorizontal < -10) {
+                    piedraActual.posicionHorizontal = anchuraCanvas;
+                    piedraActual.posicionVertical = Math.round( Math.random () * alturaPiso ) + yPiso;
+                }
+            }
+        }
+
+        montanias.push( crearMontania(anchuraCanvas * 0.25, yPiso) );
+        montanias.push( crearMontania( anchuraCanvas * 0.75, yPiso) );
+
+        let nombresDeImagenes = ["dinoParado.png", "dinoCorriendo1.png", "dinoCorriendo2.png"];
+        let imagenes = [];
+        
+        for (let i = 0; i < nombresDeImagenes.length; i++) {
+            let imagen = new Image();
+            imagen.width = 1184;
+            imagen.height = 1184;
+            imagen.src = nombresDeImagenes[i];
+            imagenes.push(imagen);
+
+            imagen.onload = jugar;
+        }
+        
+        let contadorImagenesCargadas = 0;
+        let contador = 0;
+        let imagenActual = 0;
+
+        let nubes = [crearNube(30), crearNube(20), crearNube(15)];
+
+        function crearNube( tamanio ) {
+            return {
+                x: Math.round( Math.random() * anchuraCanvas),
+                y: Math.round( Math.random() * alturaCanvas/2),
+                dibujar() {
+                    contexto.strokeStyle = "black";
+                    contexto.fillStyle = "rgba(255,255,255,0.8)";
+                    contexto.beginPath();
+                    let radio = tamanio;
+                    contexto.arc(this.x, this.y, radio, 0, 180 * Math.PI/180, true);
+                    contexto.arc(this.x + radio, this.y, radio*1.5, 0, 180 * Math.PI/180, true);
+                    contexto.arc(this.x + radio * 2, this.y, radio, 0, 180 * Math.PI/180, true);
+                    contexto.arc(this.x - radio/2, this.y, radio/2, 0, 180 * Math.PI/180);
+                    contexto.arc(this.x, this.y, radio/2, 0, 180 * Math.PI/180);
+                    contexto.arc(this.x + radio/2, this.y, radio/2, 0, 180 * Math.PI/180);
+                    contexto.arc(this.x + radio, this.y, radio/2, 0, 180 * Math.PI/180);
+                    contexto.arc(this.x + radio * 1.5, this.y, radio/2, 0, 180 * Math.PI/180);
+                    contexto.arc(this.x + radio * 2, this.y, radio/2, 0, 180 * Math.PI/180);
+                    contexto.arc(this.x + radio * 2.5, this.y, radio/2, 0, 180 * Math.PI/180);
+                    
+                    //contexto.stroke();
+                    contexto.fill();
+                }
+            }
+        }
+
+        let personaje = {
+            x: 20,
+            y: alturaCanvas - 100 - alturaPiso/2,
+            anchura: 100,
+            altura: 100,
+            estado: "detenido",//saltando, corriendo, detenido
+            direccion: "piso",//piso, subiendo, bajando
+            incrementoSalto: 1,
+            imagen: null,
+            saltar() {
+                if( this.estado != "saltando") {
+                    this.estado = "saltando";
+                    this.direccion = "subiendo";
+                }
+            },
+            dibujar() {
+                let saltoMaximo = this.altura * 2.5;
+                if(this.estado == "saltando") {
+                    this.incrementoSalto += this.direccion == "subiendo" ?  -0.5 : 0.05;
+                    // if(this.incrementoSalto < 0) {
+                    //     this.incrementoSalto = 0;
+                    // }
+                    this.y += this.incrementoSalto;//this.direccion == "subiendo" ? -this.incrementoSalto : this.incrementoSalto;
+
+                    if(this.direccion == "subiendo" && this.y <= alturaCanvas - saltoMaximo) {
+                        this.direccion = "bajando";
+                        this.incrementoSalto = 0;
+                    }
+
+                    if( this.direccion == "bajando" && this.y >= alturaCanvas - 100 - alturaPiso/2) {
+                        this.direccion = "piso";
+                        this.estado = "corriendo";
+                        this.incrementoSalto = 1;
+                        this.y = alturaCanvas - this.altura - alturaPiso/2;
+                    }
+                }
+
+                // console.log("saltoMaximo: ", saltoMaximo);
+                // console.log("alturaCanvas - saltoMaximo: ", alturaCanvas - saltoMaximo);
+                // console.log("incrementoSalto: ", this.incrementoSalto);
+                contexto.drawImage( this.imagen, this.x, this.y, 100,100,  );
+            }
+        };
+
+        let obstaculos = [];
+
+        let ultimaPosicion = anchuraCanvas * 0.75;
+        for(let i = 0; i < 3; i++) {
+            let posicionX = anchuraCanvas + Math.random() * 100;
+            let obstaculo = {
+                x: ultimaPosicion,
+                altura: Math.random() * 50 + 50,
+                anchura: 30,
+                dibujar() {
+                    contexto.fillStyle = "black";
+                    contexto.beginPath();
+                    contexto.fillRect(this.x, this.y, this.anchura, this.altura);
+                    contexto.fill();
+                },
+                actualizar() {
+                    this.x -= velocidad;
+
+                    if(this.x + this.anchura < 0 ) {
+                        this.x = obstaculos[obstaculos.length - 1].x + (anchuraCanvas + Math.random() * 100);
+                        obstaculos.push( obstaculos.shift() )
+                    }
+                }
+            };
+            obstaculo.y = alturaCanvas - alturaPiso/2 - obstaculo.altura;
+
+            obstaculos.push(obstaculo);
+            ultimaPosicion += posicionX;
+        }
+
+
+        function jugar() {
+            contadorImagenesCargadas++;
+            if(contadorImagenesCargadas == nombresDeImagenes.length) {
+                intervalo = setInterval(() => {
+                    contexto.strokeStyle = "black";
+                    contexto.fillStyle = "skyblue";
+                    contexto.fillRect(0,0, anchuraCanvas, alturaCanvas);
+
+                    for (let i = 0; i < nubes.length; i++) {
+                        const nube = nubes[i];
+                        nube.dibujar();
+                        nube.x -= 0.05;
+                    }
+                        
+                    dibujarPiso();
+                    
+                    dibujarPiedras(); 
+                    
+                    for (let index = 0; index < montanias.length; index++) {
+                        const montaniaActual = montanias[index];
+                        montaniaActual.dibujar();
+                        montaniaActual.actualizar();
+                    }  
+                    
+                    //dibujar el personaje
+                    // contexto.drawImage( imagen, 0, 0,  );
+                    contador++;
+                    if(contador % 15 == 0) {
+                        if(personaje.estado != "saltando") {
+                            imagenActual = imagenActual == 2 ? 1 : 2;
+                        }
+                        
+                        personaje.imagen = imagenes[imagenActual]; 
+                        
+                        puntaje++;
+                        if(puntaje % 50 == 0) {
+                            velocidad += 0.5;
+                        } 
+                    }
+                    
+                    for (let i = 0; i < obstaculos.length; i++) {
+                        const obstaculo = obstaculos[i];
+                        obstaculo.dibujar();
+                        obstaculo.actualizar();                        
+                    }
+
+                    personaje.dibujar();
+
+                    contexto.font = "40px Consolas";
+                    contexto.textAlign = "end";
+                    contexto.fillText(puntaje, anchuraCanvas, 30);
+                }, 10);
+
+                window.addEventListener("keydown", function() {
+                    personaje.saltar();                    
+                    console.log("velocidad: ", velocidad);
+                });
+            }
+        };
+
+    </script>
+</body>
+</html>
