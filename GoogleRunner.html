@@ -32,6 +32,8 @@
         let saltos = 0;
         let intervalo;
         let puntaje = 0;
+        let sonidoSaltar = new sound("jump.wav");
+        let sonidoChoque = new sound("crash.wav");
 
         function dibujarPiso() {
             contexto.beginPath();
@@ -42,6 +44,21 @@
 
             contexto.fillStyle = "brown";
             contexto.fillRect(0, yPiso, anchuraCanvas, alturaCanvas - yPiso);
+        }
+
+        function sound(src) {
+            this.sound = document.createElement("audio");
+            this.sound.src = src;
+            this.sound.setAttribute("preload", "auto");
+            this.sound.setAttribute("controls", "none");
+            this.sound.style.display = "none";
+            document.body.appendChild(this.sound);
+            this.play = function () {
+                this.sound.play();
+            }
+            this.stop = function () {
+                this.sound.pause();
+            }
         }
 
         // let x = anchuraCanvas * 0.30;
@@ -207,6 +224,7 @@
                 if (this.estado != "saltando") {
                     this.estado = "saltando";
                     this.direccion = "subiendo";
+                    sonidoSaltar.play();
                 }
             },
             dibujar() {
@@ -240,10 +258,10 @@
             choque(obstaculo) {
 
                 var izquierda = this.x + 35;
-                var derecha = this.x + (this.anchura - 28) ;
+                var derecha = this.x + (this.anchura - 28);
                 var arriba = this.y;
                 var abajo = this.y + (this.altura);
-                
+
                 var oIzquierda = obstaculo.x;
                 var oDerecha = obstaculo.x + (obstaculo.anchura);
                 var oArriba = obstaculo.y;
@@ -331,9 +349,9 @@
                     }
 
                     contexto.fillStyle = "red";
-                    contexto.rect(personaje.x + 35 , personaje.y, personaje.anchura - 60, personaje.altura);
+                    contexto.rect(personaje.x + 35, personaje.y, personaje.anchura - 60, personaje.altura);
                     contexto.stroke();
-                    
+
                     for (let i = 0; i < obstaculos.length; i++) {
                         const obstaculo = obstaculos[i];
                         obstaculo.dibujar();
@@ -342,12 +360,13 @@
                     }
 
                     personaje.dibujar();
-                    
+
                     for (let index = 0; index < obstaculos.length; index++) {
-                        if(personaje.choque(obstaculos[index])) {
+                        if (personaje.choque(obstaculos[index])) {
+                            sonidoChoque.play();
                             clearInterval(intervalo);
                         }
-                        
+
                     }
 
                     contexto.font = "40px Consolas";
