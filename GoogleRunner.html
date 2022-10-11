@@ -11,18 +11,45 @@
             border: 1px solid gray;
             margin: auto;
             display: block;
+            position: center;
+        }
+
+        .btn {
+            position: relative;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f1f1f1;
+            color: black;
+            padding: 16px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 23px; 
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: black;
+            color: white;
         }
     </style>
+
 </head>
 
 <body>
-    <h1>Probando</h1>
-    <canvas id="canvasDeJuego" width="600" height="300"></canvas>
+    <div class="main">
+        <h1>Probando</h1>
+        <button onclick="restableceJuego()" class="btn">Reiniciar</button>
+        <canvas id="canvasDeJuego" width="600" height="300"></canvas>
+            
+    </div>
+    
 
     <script>
         // Implementar colisiones
         let canvas = document.getElementById("canvasDeJuego");
         let contexto = canvas.getContext("2d");
+        let boton = document.getElementsByClassName("btn")[0];
 
         let alturaCanvas = canvas.height;
         let anchuraCanvas = canvas.width;
@@ -32,6 +59,7 @@
         let saltos = 0;
         let intervalo;
         let puntaje = 0;
+        let puntajeMasAlto = 0;
         let sonidoSaltar = new sound("jump.wav");
         let sonidoChoque = new sound("crash.wav");
 
@@ -44,6 +72,13 @@
 
             contexto.fillStyle = "brown";
             contexto.fillRect(0, yPiso, anchuraCanvas, alturaCanvas - yPiso);
+        }
+
+        function muestraPuntajeMasAlto() {
+            contexto.font = "40px Consolas";
+            contexto.textAlign = "center";
+            contexto.fillText("HI:" + puntajeMasAlto, anchuraCanvas / 2, 30);
+
         }
 
         function sound(src) {
@@ -216,6 +251,12 @@
             y: alturaCanvas - 100 - alturaPiso / 2,
             anchura: 100,
             altura: 100,
+            contorno: {
+                x: 60,
+                y: alturaCanvas - 100 - alturaPiso / 2,
+                anchura: 25,
+                altura: 100
+            },
             estado: "detenido",//saltando, corriendo, detenido
             direccion: "piso",//piso, subiendo, bajando
             incrementoSalto: 1,
@@ -252,136 +293,171 @@
                 // console.log("saltoMaximo: ", saltoMaximo);
                 // console.log("alturaCanvas - saltoMaximo: ", alturaCanvas - saltoMaximo);
                 // console.log("incrementoSalto: ", this.incrementoSalto);                
-
-                contexto.drawImage(this.imagen, this.x, this.y, 100, 100,);
+                contexto.strokeStyle = "red";
+                contexto.rect(this.contorno.x, this.y, this.contorno.anchura, this.contorno.altura);
+                contexto.stroke();
+                contexto.drawImage(this.imagen, this.x, this.y, 100, 100);
             },
-            choque(obstaculo) {
+            chocaCon(obstaculo) {
 
-                var izquierda = this.x + 35;
-                var derecha = this.x + (this.anchura - 28);
+
+                var izquierda = this.contorno.x; //+ 35;
+                var derecha = this.contorno.x + this.contorno.anchura;// (this.anchura - 28);
                 var arriba = this.y;
-                var abajo = this.y + (this.altura);
+                var abajo = this.y + this.contorno.altura;
 
-                var oIzquierda = obstaculo.x;
-                var oDerecha = obstaculo.x + (obstaculo.anchura);
-                var oArriba = obstaculo.y;
-                var oAbajo = obstaculo.y + (obstaculo.altura);
-                var choque = true;
-                if ((abajo < oArriba) ||
-                    (arriba > oAbajo) ||
-                    (derecha < oIzquierda) ||
-                    (izquierda > oDerecha)) {
-                    choque = false;
+                var obstaculoIzquierda = obstaculo.x;
+                var obstaculoDerecha = obstaculo.x + (obstaculo.anchura);
+                var obstaculaArriba = obstaculo.y;
+                var obstaculoAbajo = obstaculo.y + (obstaculo.altura);
+                var estaChocando = true;
+                if ((abajo < obstaculaArriba) ||
+                    (arriba > obstaculoAbajo) ||
+                    (derecha < obstaculoIzquierda) ||
+                    (izquierda > obstaculoDerecha)) {
+                    estaChocando = false;
                 }
-                return choque;
+                return estaChocando;
             }
         };
 
-        let obstaculos = [];
-
-        let ultimaPosicion = anchuraCanvas * 0.75;
-        for (let i = 0; i < 3; i++) {
-            let posicionX = anchuraCanvas + Math.random() * 100;
-            let obstaculo = {
-                x: ultimaPosicion,
-                altura: Math.random() * 50 + 50,
-                anchura: 30,
-                dibujar() {
-                    contexto.fillStyle = "black";
-                    contexto.beginPath();
-                    contexto.fillRect(this.x, this.y, this.anchura, this.altura);
-                    contexto.fill();
-                },
-                actualizar() {
-                    this.x -= velocidad;
-
-                    if (this.x + this.anchura < 0) {
-                        this.x = obstaculos[obstaculos.length - 1].x + (anchuraCanvas + Math.random() * 100);
-                        obstaculos.push(obstaculos.shift())
-                    }
-                }
-            };
-            obstaculo.y = alturaCanvas - alturaPiso / 2 - obstaculo.altura;
-
-            obstaculos.push(obstaculo);
-            ultimaPosicion += posicionX;
+        function detenerJuego() {
+            if (puntaje > puntajeMasAlto) {
+                puntajeMasAlto = puntaje;
+            }
+            muestraPuntajeMasAlto();
+            clearInterval(intervalo);
         }
+
+        var obstaculos;
+
+        function generarObstaculos() {
+            obstaculos = [];
+            let ultimaPosicion = anchuraCanvas * 0.75;
+            for (let i = 0; i < 3; i++) {
+                let posicionX = anchuraCanvas + Math.random() * 100;
+                var obstaculo = {
+                    x: ultimaPosicion,
+                    altura: Math.random() * 50 + 50,
+                    anchura: 30,
+                    dibujar() {
+                        contexto.fillStyle = "black";
+                        contexto.beginPath();
+                        contexto.fillRect(this.x, this.y, this.anchura, this.altura);
+                        contexto.fill();
+                    },
+                    actualizar() {
+                        this.x -= velocidad;
+
+                        if (this.x + this.anchura < 0) {
+                            this.x = obstaculos[obstaculos.length - 1].x + (anchuraCanvas + Math.random() * 100);
+                            obstaculos.push(obstaculos.shift())
+                        }
+                    }
+                };
+                obstaculo.y = alturaCanvas - alturaPiso / 2 - obstaculo.altura;
+
+                obstaculos.push(obstaculo);
+                ultimaPosicion += posicionX;
+            }
+        }
+        generarObstaculos();
 
 
         function jugar() {
+            console.log(contadorImagenesCargadas);
             contadorImagenesCargadas++;
             if (contadorImagenesCargadas == nombresDeImagenes.length) {
-                intervalo = setInterval(() => {
-                    contexto.strokeStyle = "black";
-                    contexto.fillStyle = "skyblue";
-                    contexto.fillRect(0, 0, anchuraCanvas, alturaCanvas);
-
-                    for (let i = 0; i < nubes.length; i++) {
-                        const nube = nubes[i];
-                        nube.dibujar();
-                        nube.x -= 0.05;
-                    }
-
-                    dibujarPiso();
-
-                    dibujarPiedras();
-
-                    for (let index = 0; index < montanias.length; index++) {
-                        const montaniaActual = montanias[index];
-                        montaniaActual.dibujar();
-                        montaniaActual.actualizar();
-                    }
-
-                    //dibujar el personaje
-                    // contexto.drawImage( imagen, 0, 0,  );
-                    contador++;
-                    if (contador % 15 == 0) {
-                        if (personaje.estado != "saltando") {
-                            imagenActual = imagenActual == 2 ? 1 : 2;
-                        }
-
-                        personaje.imagen = imagenes[imagenActual];
-
-                        puntaje++;
-                        if (puntaje % 50 == 0) {
-                            velocidad += 0.5;
-                        }
-                    }
-
-                    contexto.fillStyle = "red";
-                    contexto.rect(personaje.x + 35, personaje.y, personaje.anchura - 60, personaje.altura);
-                    contexto.stroke();
-
-                    for (let i = 0; i < obstaculos.length; i++) {
-                        const obstaculo = obstaculos[i];
-                        obstaculo.dibujar();
-                        obstaculo.actualizar();
-
-                    }
-
-                    personaje.dibujar();
-
-                    for (let index = 0; index < obstaculos.length; index++) {
-                        if (personaje.choque(obstaculos[index])) {
-                            sonidoChoque.play();
-                            clearInterval(intervalo);
-                        }
-
-                    }
-
-                    contexto.font = "40px Consolas";
-                    contexto.textAlign = "end";
-                    contexto.fillText(puntaje, anchuraCanvas, 30);
-                }, 10);
-
-                window.addEventListener("keydown", function () {
-                    personaje.saltar();
-                    console.log("velocidad: ", velocidad);
-                });
+                areaDeJuego();
             }
         };
 
+        function restableceJuego() {
+            velocidad = 1.5;
+            puntaje = 0;
+            obstaculos = null;
+            nubes = [crearNube(30), crearNube(20), crearNube(15)];
+            generarObstaculos();
+            areaDeJuego();
+            personaje.x = 20;
+            personaje.y = alturaCanvas - 100 - alturaPiso / 2;
+        }
+
+
+        function areaDeJuego() {
+            boton.setAttribute("hidden", "hidden");
+            intervalo = setInterval(() => {
+                contexto.strokeStyle = "black";
+                contexto.fillStyle = "skyblue";
+                contexto.fillRect(0, 0, anchuraCanvas, alturaCanvas);
+
+                for (let i = 0; i < nubes.length; i++) {
+                    const nube = nubes[i];
+                    nube.dibujar();
+                    nube.x -= 0.05;
+                }
+
+                dibujarPiso();
+                dibujarPiedras();
+
+                for (let index = 0; index < montanias.length; index++) {
+                    const montaniaActual = montanias[index];
+                    montaniaActual.dibujar();
+                    montaniaActual.actualizar();
+                }
+
+                //dibujar el personaje
+                // contexto.drawImage( imagen, 0, 0,  );
+                contador++;
+                if (contador % 15 == 0) {
+                    if (personaje.estado != "saltando") {
+                        imagenActual = imagenActual == 2 ? 1 : 2;
+                    }
+
+                    personaje.imagen = imagenes[imagenActual];
+
+                    puntaje++;
+                    if (puntaje % 50 == 0) {
+                        velocidad += 0.5;
+                    }
+                }
+
+                for (let i = 0; i < obstaculos.length; i++) {
+                    const obstaculo = obstaculos[i];
+                    obstaculo.dibujar();
+                    obstaculo.actualizar();
+
+                }
+
+                personaje.dibujar();
+
+                for (let index = 0; index < obstaculos.length; index++) {
+                    if (personaje.chocaCon(obstaculos[index])) {
+                        detenerJuego();
+                        sonidoChoque.play();
+                        boton.removeAttribute("hidden");
+                    }
+
+                }
+
+                contexto.font = "40px Consolas";
+                contexto.textAlign = "end";
+                contexto.fillText(puntaje, anchuraCanvas, 30);
+
+                if (puntajeMasAlto != 0) {
+                    muestraPuntajeMasAlto();
+                }
+            }, 10);
+
+            window.addEventListener("keydown", function () {
+                personaje.saltar();
+                console.log("velocidad: ", velocidad);
+            });
+        }
+
+
     </script>
+    
 </body>
 
 </html>
